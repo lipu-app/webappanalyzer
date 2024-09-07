@@ -1,0 +1,12 @@
+[package]
+name = "webappanalyzer"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+anyhow = "1.0.87"
+regex = "1.10.6"
+scraper = "0.20.0"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
