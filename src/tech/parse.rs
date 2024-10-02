@@ -65,32 +65,35 @@ impl WappTech {
 /// `"str"` => `vec![f("str")]`
 ///
 /// `[v1, v2, ...]` => `vec![f(v1), f(v2), ...]`
-fn to_vec<T, F>(value: Option<serde_json::Value>, f: F) -> Result<Vec<T>, Error>
+fn to_vec<T, F>(value: Option<serde_json::Value>, f: F) -> Vec<T>
 where
     F: Fn(serde_json::Value) -> Result<T, Error>,
 {
     match value {
-        None => Ok(Vec::new()),
-        Some(serde_json::Value::Array(a)) => a.into_iter().map(f).collect(),
-        Some(x) => f(x).map(|x| vec![x]),
+        None => Vec::new(),
+        Some(serde_json::Value::Array(a)) => a.into_iter().map(f).filter_map(|x| x.ok()).collect(),
+        Some(x) => match f(x) {
+            Ok(x) => vec![x],
+            Err(_) => Vec::new(),
+        },
     }
 }
 
-fn to_string_vec(value: Option<serde_json::Value>) -> Result<Vec<String>, Error> {
+fn to_string_vec(value: Option<serde_json::Value>) -> Vec<String> {
     to_vec(value, |s| match s {
         serde_json::Value::String(s) => Ok(s),
         x => Err(anyhow!("Expect a string, found {x}")),
     })
 }
 
-fn to_tagged_string_vec(value: Option<serde_json::Value>) -> Result<Vec<Tagged<String>>, Error> {
+fn to_tagged_string_vec(value: Option<serde_json::Value>) -> Vec<Tagged<String>> {
     to_vec(value, |s| match s {
         serde_json::Value::String(s) => Tagged::parse(&s, |t| Ok(t.to_string())),
         x => Err(anyhow!("Expect a string, found {x}")),
     })
 }
 
-fn to_pattern_vec(value: Option<serde_json::Value>) -> Result<Vec<Tagged<Regex>>, Error> {
+fn to_pattern_vec(value: Option<serde_json::Value>) -> Vec<Tagged<Regex>> {
     to_vec(value, |s| match s {
         serde_json::Value::String(s) => Tagged::parse(&s, |t| {
             Regex::new(t).with_context(|| format!("Failed parsing regular expresion {t}"))
@@ -105,12 +108,10 @@ fn to_pattern_map(
 ) -> Result<Vec<(String, Vec<Tagged<Regex>>)>, Error> {
     match value {
         None => Ok(Vec::new()),
-        Some(serde_json::Value::Object(o)) => o
+        Some(serde_json::Value::Object(o)) => Ok(o
             .into_iter()
-            .map(|(k, v)| -> Result<(String, Vec<Tagged<Regex>>), Error> {
-                Ok((k, to_pattern_vec(Some(v))?))
-            })
-            .collect(),
+            .map(|(k, v)| -> (String, Vec<Tagged<Regex>>) { (k, to_pattern_vec(Some(v))) })
+            .collect()),
         Some(x) => Err(anyhow!("Expect a object, found {x}")),
     }
 }
@@ -136,10 +137,10 @@ impl WappTech {
                     oss: item.oss,
                     pricing: item.pricing.unwrap_or_default(),
                     cert_issuer: item.cert_issuer,
-                    implies: to_tagged_string_vec(item.implies)?,
+                    implies: to_tagged_string_vec(item.implies),
                     requires: item.requires.unwrap_or_default(),
                     requires_category: item.requires_category.unwrap_or_default(),
-                    excludes: to_string_vec(item.excludes)?,
+                    excludes: to_string_vec(item.excludes),
                     cookies: to_pattern_map(item.cookies)?,
                     dom: item
                         .dom
@@ -149,16 +150,16 @@ impl WappTech {
                     dns: (),
                     js: (),
                     headers: to_pattern_map(item.headers)?,
-                    html: to_pattern_vec(item.html)?,
-                    text: to_pattern_vec(item.text)?,
+                    html: to_pattern_vec(item.html),
+                    text: to_pattern_vec(item.text),
                     css: (),
                     probe: (),
                     robots: (),
-                    url: to_pattern_vec(item.url)?,
+                    url: to_pattern_vec(item.url),
                     xhr: (),
                     meta: to_pattern_map(item.meta)?,
-                    script_src: to_pattern_vec(item.script_src)?,
-                    scripts: to_pattern_vec(item.scripts)?,
+                    script_src: to_pattern_vec(item.script_src),
+                    scripts: to_pattern_vec(item.scripts),
                 },
             );
         }
@@ -273,17 +274,17 @@ impl WappTechDomPatttern {
                                 })?);
                             }
                             "text" => {
-                                pat.text = Some(
-                                    v.as_str()
-                                        .ok_or_else(|| anyhow!("Expect string, fonud {v}"))
-                                        .and_then(|t| {
-                                            Tagged::<Regex>::parse(t, |s| {
-                                                Regex::new(s).with_context(|| {
-                                                    format!("Failed parsing regular expression {s}")
-                                                })
+                                pat.text = v
+                                    .as_str()
+                                    .ok_or_else(|| anyhow!("Expect string, fonud {v}"))
+                                    .and_then(|t| {
+                                        Tagged::<Regex>::parse(t, |s| {
+                                            Regex::new(s).with_context(|| {
+                                                format!("Failed parsing regular expression {s}")
                                             })
-                                        })?,
-                                );
+                                        })
+                                    })
+                                    .ok();
                             }
                             "attributes" | "properties" => {
                                 pat.attributes.extend(to_pattern_map(Some(v.clone()))?);
