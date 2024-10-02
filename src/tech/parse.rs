@@ -22,7 +22,7 @@ struct WappTechRaw {
     pub cert_issuer: Option<String>,
     pub implies: Option<serde_json::Value>,
     pub requires: Option<Vec<String>>,
-    pub requires_category: Option<i32>,
+    pub requires_category: Option<Vec<i32>>,
     pub excludes: Option<serde_json::Value>,
     pub cookies: Option<serde_json::Value>,
     pub dom: Option<serde_json::Value>,
@@ -138,7 +138,7 @@ impl WappTech {
                     cert_issuer: item.cert_issuer,
                     implies: to_tagged_string_vec(item.implies)?,
                     requires: item.requires.unwrap_or_default(),
-                    requires_category: item.requires_category,
+                    requires_category: item.requires_category.unwrap_or_default(),
                     excludes: to_string_vec(item.excludes)?,
                     cookies: to_pattern_map(item.cookies)?,
                     dom: item

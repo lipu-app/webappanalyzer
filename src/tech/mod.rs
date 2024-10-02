@@ -36,7 +36,7 @@ pub struct WappTech {
     /// a specific CMS.
     pub requires: Vec<String>,
     /// Similar to requires; detection only runs if a technology in the required category has been identified.
-    pub requires_category: Option<i32>,
+    pub requires_category: Vec<i32>,
     /// Opposite of implies. The presence of one application can exclude the presence of another.
     pub excludes: Vec<String>,
     /// Cookies.
