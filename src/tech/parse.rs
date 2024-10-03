@@ -364,3 +364,41 @@ impl WappTechDomPatttern {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use anyhow::{anyhow, Error};
+
+    use super::to_vec;
+
+    #[test]
+    fn test_to_vec() {
+        use serde_json::json;
+
+        assert_eq!(to_vec(None, |_| Ok(())), vec![]);
+
+        assert_eq!(to_vec(Some(json!(1)), |x| Ok(x.as_i64().unwrap())), vec![1]);
+
+        assert_eq!(
+            to_vec(Some(json!(1)), |_| Err::<(), Error>(anyhow!("anyhow"))),
+            vec![],
+        );
+
+        assert_eq!(
+            to_vec(Some(json!([1, 2, 3])), |x| Ok(x.as_i64().unwrap())),
+            vec![1, 2, 3],
+        );
+
+        assert_eq!(
+            to_vec(
+                Some(json!([1, 2, 3])),
+                |x| if x.as_i64().unwrap() % 2 != 0 {
+                    Ok(x)
+                } else {
+                    Err(anyhow!("anyhow"))
+                }
+            ),
+            vec![1, 3],
+        );
+    }
+}
