@@ -21,8 +21,8 @@ struct WappTechRaw {
     pub pricing: Option<Vec<WappTechPricing>>,
     pub cert_issuer: Option<String>,
     pub implies: Option<serde_json::Value>,
-    pub requires: Option<Vec<String>>,
-    pub requires_category: Option<Vec<i32>>,
+    pub requires: Option<serde_json::Value>,
+    pub requires_category: Option<serde_json::Value>,
     pub excludes: Option<serde_json::Value>,
     pub cookies: Option<serde_json::Value>,
     pub dom: Option<serde_json::Value>,
@@ -77,6 +77,16 @@ where
             Err(_) => Vec::new(),
         },
     }
+}
+
+fn to_i32_vec(value: Option<serde_json::Value>) -> Vec<i32> {
+    to_vec(value, |x| match x {
+        serde_json::Value::Number(x) => match x.as_i64() {
+            Some(x) => Ok(x as i32),
+            None => Err(anyhow!("Expect an i32, found {x}")),
+        },
+        x => Err(anyhow!("Expect an i32, found {x}"))
+    })
 }
 
 fn to_string_vec(value: Option<serde_json::Value>) -> Vec<String> {
@@ -138,8 +148,8 @@ impl WappTech {
                     pricing: item.pricing.unwrap_or_default(),
                     cert_issuer: item.cert_issuer,
                     implies: to_tagged_string_vec(item.implies),
-                    requires: item.requires.unwrap_or_default(),
-                    requires_category: item.requires_category.unwrap_or_default(),
+                    requires: to_string_vec(item.requires),
+                    requires_category: to_i32_vec(item.requires_category),
                     excludes: to_string_vec(item.excludes),
                     cookies: to_pattern_map(item.cookies)?,
                     dom: item
