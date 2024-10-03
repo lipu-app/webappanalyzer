@@ -6,7 +6,7 @@ use scraper::Selector;
 use serde::Deserialize;
 
 use super::{
-    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersion, WappTechVersionValue,
+    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersionPattern, WappTechVersionValue,
 };
 
 #[derive(Debug, Deserialize)]
@@ -180,7 +180,7 @@ impl WappTech {
 }
 
 impl Tagged<()> {
-    fn new(confidence: i32, version: WappTechVersion) -> Self {
+    fn new(confidence: i32, version: Option<WappTechVersionPattern>) -> Self {
         Self {
             inner: (),
             confidence,
@@ -198,7 +198,7 @@ impl<T> Tagged<T> {
 
         let inner_input = parts.next().unwrap();
         let mut confidence = 100;
-        let mut version = WappTechVersion::Unknown;
+        let mut version = None;
 
         for p in parts {
             let (k, v) = p.split_once(':').unwrap();
@@ -207,7 +207,7 @@ impl<T> Tagged<T> {
                     confidence = v.parse().unwrap();
                 }
                 "version" => {
-                    version = WappTechVersion::parse(v)?;
+                    version = Some(WappTechVersionPattern::parse(v)?);
                 }
                 tag => bail!("Unknown tag name: {}", tag),
             }
@@ -221,7 +221,7 @@ impl<T> Tagged<T> {
     }
 }
 
-impl WappTechVersion {
+impl WappTechVersionPattern {
     fn parse(input: &str) -> Result<Self, Error> {
         static RE: OnceLock<Regex> = OnceLock::new();
         let re = RE.get_or_init(|| Regex::new(r#"^([^?]*)\?([^:]*):(.*)$"#).unwrap());
@@ -235,13 +235,13 @@ impl WappTechVersion {
                     }
                 };
 
-                WappTechVersion::Conditional {
+                WappTechVersionPattern::Conditional {
                     cond_var,
                     true_expr: WappTechVersionValue::parse(&c[2])?,
                     false_expr: WappTechVersionValue::parse(&c[3])?,
                 }
             }
-            None => WappTechVersion::Always(WappTechVersionValue::parse(input)?),
+            None => WappTechVersionPattern::Always(WappTechVersionValue::parse(input)?),
         })
     }
 }

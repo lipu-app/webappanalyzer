@@ -122,12 +122,11 @@ pub struct Tagged<T> {
     pub confidence: i32,
 
     /// Gets the version number from a pattern match using a special syntax.
-    pub version: WappTechVersion,
+    pub version: Option<WappTechVersionPattern>,
 }
 
 #[derive(Debug)]
-pub enum WappTechVersion {
-    Unknown,
+pub enum WappTechVersionPattern {
     Always(WappTechVersionValue),
     Conditional {
         cond_var: usize,
