@@ -1,7 +1,5 @@
 mod parse;
 
-use std::ops::Deref;
-
 use regex::Regex;
 use scraper::Selector;
 use serde::Deserialize;
@@ -125,14 +123,6 @@ pub struct Tagged<T> {
 
     /// Gets the version number from a pattern match using a special syntax.
     pub version: WappTechVersion,
-}
-
-impl<T> Deref for Tagged<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
 }
 
 #[derive(Debug)]
