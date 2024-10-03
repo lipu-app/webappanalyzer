@@ -155,7 +155,6 @@ impl WappTech {
                     dom: item
                         .dom
                         .map(WappTechDomPatttern::from_json)
-                        .transpose()?
                         .unwrap_or_default(),
                     dns: (),
                     js: (),
@@ -247,41 +246,54 @@ impl WappTechDomPatttern {
         })
     }
 
-    fn from_json(input: serde_json::Value) -> Result<Vec<Self>, Error> {
+    fn from_json(input: serde_json::Value) -> Vec<Self> {
         match input {
-            serde_json::Value::String(s) => Self::from_selector(&s).map(|x| vec![x]),
+            serde_json::Value::String(s) => match Self::from_selector(&s) {
+                Ok(x) => vec![x],
+                Err(_) => Vec::new(),
+            },
             serde_json::Value::Array(a) => {
                 let mut vals = Vec::new();
                 for x in a {
                     let s = match x {
                         serde_json::Value::String(s) => s,
-                        _ => Err(anyhow!("Expect a string, found {x}"))?,
+                        _ => continue,
                     };
-                    vals.push(Self::from_selector(&s)?);
+                    match Self::from_selector(&s) {
+                        Ok(v) => vals.push(v),
+                        Err(_) => continue,
+                    };
                 }
-                Ok(vals)
+                vals
             }
             serde_json::Value::Object(o) => {
                 let mut vals = Vec::new();
                 for (selector, description) in o {
-                    let mut pat = Self::from_selector(&selector)?;
+                    let mut pat = match Self::from_selector(&selector) {
+                        Ok(p) => p,
+                        Err(_) => continue,
+                    };
                     let description = match description {
                         serde_json::Value::Object(d) => d,
-                        x => Err(anyhow!("Expect an object, found {x}"))?,
+                        _ => continue,
                     };
                     for (k, v) in description {
                         match k.as_str() {
                             "exists" => {
                                 let s = match v {
                                     serde_json::Value::String(s) => s,
-                                    _ => Err(anyhow!("Expect a string, found {v}"))?,
+                                    _ => continue,
                                 };
-                                pat.exists = Some(Tagged::parse(&s, |t| {
+                                let t = Tagged::parse(&s, |t| {
                                     if !t.is_empty() {
                                         Err(anyhow!("Expect an empty string, found {t}"))?
                                     }
                                     Ok(())
-                                })?);
+                                });
+                                match t {
+                                    Ok(p) => pat.exists = Some(p),
+                                    Err(_) => continue,
+                                };
                             }
                             "text" => {
                                 pat.text = v
@@ -297,7 +309,9 @@ impl WappTechDomPatttern {
                                     .ok();
                             }
                             "attributes" | "properties" => {
-                                pat.attributes.extend(to_pattern_map(Some(v.clone()))?);
+                                if let Ok(x) = to_pattern_map(Some(v.clone())) {
+                                    pat.attributes.extend(x);
+                                }
                             }
                             "src" => {}
                             x => panic!("{x}"),
@@ -305,7 +319,7 @@ impl WappTechDomPatttern {
                     }
                     vals.push(pat);
                 }
-                Ok(vals)
+                vals
             }
             _ => panic!(),
         }
