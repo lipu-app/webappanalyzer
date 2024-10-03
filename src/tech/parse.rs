@@ -6,7 +6,8 @@ use scraper::Selector;
 use serde::Deserialize;
 
 use super::{
-    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersionPattern, WappTechVersionValue,
+    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersionPattern,
+    WappTechVersionValue,
 };
 
 #[derive(Debug, Deserialize)]
@@ -253,7 +254,7 @@ impl WappTechVersionValue {
 
         match re.captures(input) {
             Some(c) => {
-                if c.len() != input.len() {
+                if c[0].len() != input.len() {
                     return Err(anyhow!("Failed to parse version value {input}"));
                 }
                 let cond_var = c[1]
@@ -369,7 +370,7 @@ impl WappTechDomPatttern {
 mod test {
     use anyhow::{anyhow, Error};
 
-    use super::to_vec;
+    use super::{to_vec, Tagged, WappTechVersionPattern, WappTechVersionValue};
 
     #[test]
     fn test_to_vec() {
@@ -400,5 +401,100 @@ mod test {
             ),
             vec![1, 3],
         );
+    }
+
+
+    #[test]
+    fn test_parse_tagged() {
+        assert_eq!(
+            Tagged::parse("pattern", |s| Ok(s.to_string())).unwrap(),
+            Tagged {
+                inner: "pattern".to_string(),
+                confidence: 100,
+                version: None,
+            }
+        );
+
+        assert_eq!(
+            Tagged::parse("pattern\\;confidence:80", |s| Ok(s.to_string())).unwrap(),
+            Tagged {
+                inner: "pattern".to_string(),
+                confidence: 80,
+                version: None,
+            },
+        );
+
+        assert_eq!(
+            Tagged::parse("(pattern)\\;version:\\1", |s| Ok(s.to_string())).unwrap(),
+            Tagged {
+                inner: "(pattern)".to_string(),
+                confidence: 100,
+                version: Some(WappTechVersionPattern::Always(WappTechVersionValue::Var(1))),
+            },
+        );
+
+        assert_eq!(
+            Tagged::parse("(pattern)\\;confidence:80\\;version:\\1?next:\\2", |s| Ok(
+                s.to_string()
+            ))
+            .unwrap(),
+            Tagged {
+                inner: "(pattern)".to_string(),
+                confidence: 80,
+                version: Some(WappTechVersionPattern::Conditional {
+                    cond_var: 1,
+                    true_expr: WappTechVersionValue::Const("next".into()),
+                    false_expr: WappTechVersionValue::Var(2),
+                }),
+            },
+        );
+    }
+
+    #[test]
+    fn test_parse_wapp_tech_version_pattern() {
+        assert_eq!(
+            WappTechVersionPattern::parse("v1").unwrap(),
+            WappTechVersionPattern::Always(WappTechVersionValue::Const("v1".into())),
+        );
+
+        assert_eq!(
+            WappTechVersionPattern::parse("\\1").unwrap(),
+            WappTechVersionPattern::Always(WappTechVersionValue::Var(1)),
+        );
+
+        assert_eq!(
+            WappTechVersionPattern::parse("\\1?next:\\2").unwrap(),
+            WappTechVersionPattern::Conditional {
+                cond_var: 1,
+                true_expr: WappTechVersionValue::Const("next".into()),
+                false_expr: WappTechVersionValue::Var(2),
+            }
+        );
+
+        assert_eq!(
+            WappTechVersionPattern::parse("\\1?\\1:legacy").unwrap(),
+            WappTechVersionPattern::Conditional {
+                cond_var: 1,
+                true_expr: WappTechVersionValue::Var(1),
+                false_expr: WappTechVersionValue::Const("legacy".into()),
+            }
+        );
+
+        assert!(WappTechVersionPattern::parse("conststr?\\1:\\2").is_err());
+    }
+
+    #[test]
+    fn test_parse_wapp_tech_version_value() {
+        assert_eq!(
+            WappTechVersionValue::parse("v1").unwrap(),
+            WappTechVersionValue::Const("v1".into()),
+        );
+
+        assert_eq!(
+            WappTechVersionValue::parse("\\42").unwrap(),
+            WappTechVersionValue::Var(42),
+        );
+
+        assert!(WappTechVersionValue::parse("left\\1right").is_err());
     }
 }

@@ -113,7 +113,7 @@ pub struct WappTechDomPatttern {
 
 /// Tags (a non-standard syntax) can be appended to patterns (and implies and excludes, separated by \\;) to store
 /// additional information.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Tagged<T> {
     pub inner: T,
 
@@ -125,7 +125,7 @@ pub struct Tagged<T> {
     pub version: Option<WappTechVersionPattern>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum WappTechVersionPattern {
     Always(WappTechVersionValue),
     Conditional {
@@ -135,7 +135,7 @@ pub enum WappTechVersionPattern {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum WappTechVersionValue {
     Const(String),
     Var(usize),
