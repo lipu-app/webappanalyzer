@@ -128,6 +128,16 @@ pub struct Tagged<T> {
 #[derive(Debug)]
 pub enum WappTechVersion {
     Unknown,
-    Always(String),
-    Conditional(String, String, String),
+    Always(WappTechVersionValue),
+    Conditional {
+        cond_var: usize,
+        true_expr: WappTechVersionValue,
+        false_expr: WappTechVersionValue,
+    },
+}
+
+#[derive(Debug)]
+pub enum WappTechVersionValue {
+    Const(String),
+    Var(usize),
 }

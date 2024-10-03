@@ -5,7 +5,9 @@ use regex::Regex;
 use scraper::Selector;
 use serde::Deserialize;
 
-use super::{Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersion};
+use super::{
+    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersion, WappTechVersionValue,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -85,7 +87,7 @@ fn to_i32_vec(value: Option<serde_json::Value>) -> Vec<i32> {
             Some(x) => Ok(x as i32),
             None => Err(anyhow!("Expect an i32, found {x}")),
         },
-        x => Err(anyhow!("Expect an i32, found {x}"))
+        x => Err(anyhow!("Expect an i32, found {x}")),
     })
 }
 
@@ -205,15 +207,7 @@ impl<T> Tagged<T> {
                     confidence = v.parse().unwrap();
                 }
                 "version" => {
-                    static RE: OnceLock<Regex> = OnceLock::new();
-                    let re = RE.get_or_init(|| Regex::new(r#"^([^?]*)\?([^:]*):(.*)$"#).unwrap());
-
-                    version = match re.captures(v) {
-                        None => WappTechVersion::Always(v.into()),
-                        Some(c) => {
-                            WappTechVersion::Conditional(c[1].into(), c[2].into(), c[3].into())
-                        }
-                    }
+                    version = WappTechVersion::parse(v)?;
                 }
                 tag => bail!("Unknown tag name: {}", tag),
             }
@@ -224,6 +218,51 @@ impl<T> Tagged<T> {
             confidence,
             version,
         })
+    }
+}
+
+impl WappTechVersion {
+    fn parse(input: &str) -> Result<Self, Error> {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        let re = RE.get_or_init(|| Regex::new(r#"^([^?]*)\?([^:]*):(.*)$"#).unwrap());
+
+        Ok(match re.captures(input) {
+            Some(c) => {
+                let cond_var = match WappTechVersionValue::parse(&c[1])? {
+                    WappTechVersionValue::Var(i) => i,
+                    WappTechVersionValue::Const(s) => {
+                        bail!("Unexpected constant in condition: {s}")
+                    }
+                };
+
+                WappTechVersion::Conditional {
+                    cond_var,
+                    true_expr: WappTechVersionValue::parse(&c[2])?,
+                    false_expr: WappTechVersionValue::parse(&c[3])?,
+                }
+            }
+            None => WappTechVersion::Always(WappTechVersionValue::parse(input)?),
+        })
+    }
+}
+
+impl WappTechVersionValue {
+    fn parse(input: &str) -> Result<Self, Error> {
+        static RE: OnceLock<Regex> = OnceLock::new();
+        let re = RE.get_or_init(|| Regex::new(r#"\\(\d+)"#).unwrap());
+
+        match re.captures(input) {
+            Some(c) => {
+                if c.len() != input.len() {
+                    return Err(anyhow!("Failed to parse version value {input}"));
+                }
+                let cond_var = c[1]
+                    .parse()
+                    .context("Failed to parse version value as interger")?;
+                Ok(Self::Var(cond_var))
+            }
+            None => Ok(Self::Const(input.into())),
+        }
     }
 }
 
