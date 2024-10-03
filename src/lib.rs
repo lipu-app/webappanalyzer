@@ -60,9 +60,3 @@ impl WappAnalyzer {
         })
     }
 }
-
-#[test]
-fn test() {
-    let wapp_analyzer = WappAnalyzer::from_dir("./data").unwrap();
-    println!("{wapp_analyzer:?}");
-}
