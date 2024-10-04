@@ -130,8 +130,8 @@ pub enum WappTechVersionPattern {
     Always(WappTechVersionValue),
     Conditional {
         cond_var: usize,
-        true_expr: WappTechVersionValue,
-        false_expr: WappTechVersionValue,
+        true_expr: Option<WappTechVersionValue>,
+        false_expr: Option<WappTechVersionValue>,
     },
 }
 

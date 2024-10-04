@@ -230,9 +230,12 @@ impl WappTechVersionPattern {
         Ok(match re.captures(input) {
             Some(c) => {
                 let cond_var = match WappTechVersionValue::parse(&c[1])? {
-                    WappTechVersionValue::Var(i) => i,
-                    WappTechVersionValue::Const(s) => {
+                    Some(WappTechVersionValue::Var(i)) => i,
+                    Some(WappTechVersionValue::Const(s)) => {
                         bail!("Unexpected constant in condition: {s}")
+                    }
+                    None => {
+                        bail!("Unexpected empty string in condition")
                     }
                 };
 
@@ -242,17 +245,24 @@ impl WappTechVersionPattern {
                     false_expr: WappTechVersionValue::parse(&c[3])?,
                 }
             }
-            None => WappTechVersionPattern::Always(WappTechVersionValue::parse(input)?),
+            None => match WappTechVersionValue::parse(input)? {
+                Some(v) => WappTechVersionPattern::Always(v),
+                None => bail!("Empty version value"),
+            },
         })
     }
 }
 
 impl WappTechVersionValue {
-    fn parse(input: &str) -> Result<Self, Error> {
+    fn parse(input: &str) -> Result<Option<Self>, Error> {
+        if input.is_empty() {
+            return Ok(None);
+        }
+
         static RE: OnceLock<Regex> = OnceLock::new();
         let re = RE.get_or_init(|| Regex::new(r#"\\(\d+)"#).unwrap());
 
-        match re.captures(input) {
+        Ok(Some(match re.captures(input) {
             Some(c) => {
                 if c[0].len() != input.len() {
                     return Err(anyhow!("Failed to parse version value {input}"));
@@ -260,10 +270,10 @@ impl WappTechVersionValue {
                 let cond_var = c[1]
                     .parse()
                     .context("Failed to parse version value as interger")?;
-                Ok(Self::Var(cond_var))
+                Self::Var(cond_var)
             }
-            None => Ok(Self::Const(input.into())),
-        }
+            None => Self::Const(input.into()),
+        }))
     }
 }
 
@@ -403,7 +413,6 @@ mod test {
         );
     }
 
-
     #[test]
     fn test_parse_tagged() {
         assert_eq!(
@@ -443,8 +452,8 @@ mod test {
                 confidence: 80,
                 version: Some(WappTechVersionPattern::Conditional {
                     cond_var: 1,
-                    true_expr: WappTechVersionValue::Const("next".into()),
-                    false_expr: WappTechVersionValue::Var(2),
+                    true_expr: Some(WappTechVersionValue::Const("next".into())),
+                    false_expr: Some(WappTechVersionValue::Var(2)),
                 }),
             },
         );
@@ -466,8 +475,8 @@ mod test {
             WappTechVersionPattern::parse("\\1?next:\\2").unwrap(),
             WappTechVersionPattern::Conditional {
                 cond_var: 1,
-                true_expr: WappTechVersionValue::Const("next".into()),
-                false_expr: WappTechVersionValue::Var(2),
+                true_expr: Some(WappTechVersionValue::Const("next".into())),
+                false_expr: Some(WappTechVersionValue::Var(2)),
             }
         );
 
@@ -475,8 +484,8 @@ mod test {
             WappTechVersionPattern::parse("\\1?\\1:legacy").unwrap(),
             WappTechVersionPattern::Conditional {
                 cond_var: 1,
-                true_expr: WappTechVersionValue::Var(1),
-                false_expr: WappTechVersionValue::Const("legacy".into()),
+                true_expr: Some(WappTechVersionValue::Var(1)),
+                false_expr: Some(WappTechVersionValue::Const("legacy".into())),
             }
         );
 
@@ -485,14 +494,16 @@ mod test {
 
     #[test]
     fn test_parse_wapp_tech_version_value() {
+        assert_eq!(WappTechVersionValue::parse("").unwrap(), None);
+
         assert_eq!(
             WappTechVersionValue::parse("v1").unwrap(),
-            WappTechVersionValue::Const("v1".into()),
+            Some(WappTechVersionValue::Const("v1".into())),
         );
 
         assert_eq!(
             WappTechVersionValue::parse("\\42").unwrap(),
-            WappTechVersionValue::Var(42),
+            Some(WappTechVersionValue::Var(42)),
         );
 
         assert!(WappTechVersionValue::parse("left\\1right").is_err());
