@@ -286,10 +286,10 @@ impl WappTechDomPatttern {
 
         Ok(Self {
             selector: tagged_selector.inner,
-            exists: Some(Tagged::new(
+            exists: Tagged::new(
                 tagged_selector.confidence,
                 tagged_selector.version,
-            )),
+            ),
             text: None,
             attributes: Vec::new(),
             properties: (),
@@ -341,7 +341,7 @@ impl WappTechDomPatttern {
                                     Ok(())
                                 });
                                 match t {
-                                    Ok(p) => pat.exists = Some(p),
+                                    Ok(p) => pat.exists = p,
                                     Err(_) => continue,
                                 };
                             }

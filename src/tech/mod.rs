@@ -104,7 +104,7 @@ pub enum WappTechPricing {
 #[derive(Debug)]
 pub struct WappTechDomPatttern {
     selector: Selector,
-    exists: Option<Tagged<()>>,
+    exists: Tagged<()>,
     text: Option<Tagged<Regex>>,
     attributes: Vec<(String, Vec<Tagged<Regex>>)>,
     #[allow(dead_code)]
