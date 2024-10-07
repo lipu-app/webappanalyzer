@@ -16,6 +16,27 @@ pub struct WappAnalyzer {
     pub tech: HashMap<String, WappTech>,
 }
 
+pub trait WappPage {
+    fn url(&self) -> Option<&str> {
+        None
+    }
+
+    fn html(&self) -> Option<&str> {
+        None
+    }
+
+    fn text(&self) -> Option<&str> {
+        None
+    }
+}
+
+#[derive(Debug)]
+pub struct WappCheckResult {
+    pub tech_name: String,
+    pub confidence: i32,
+    pub version: Option<String>,
+}
+
 impl WappAnalyzer {
     pub fn new_empty() -> Self {
         Self {
@@ -58,5 +79,23 @@ impl WappAnalyzer {
                 tech
             },
         })
+    }
+}
+
+impl WappAnalyzer {
+    pub fn check<P: WappPage>(&self, page: &P) -> Vec<WappCheckResult> {
+        let mut result = Vec::new();
+
+        for tech in self.tech.values() {
+            if let Some(r) = tech.check(page) {
+                result.push(WappCheckResult {
+                    tech_name: tech.name.clone(),
+                    confidence: r.confidence,
+                    version: r.version,
+                });
+            }
+        }
+
+        result
     }
 }

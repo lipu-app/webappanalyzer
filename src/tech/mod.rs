@@ -144,6 +144,6 @@ pub enum WappTechVersionValue {
 
 #[derive(Debug)]
 pub struct WappTechCheckResult {
-    confidence: i32,
-    version: Option<String>,
+    pub confidence: i32,
+    pub version: Option<String>,
 }

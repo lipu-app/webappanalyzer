@@ -1,5 +1,7 @@
 use regex::{Captures, Regex};
 
+use crate::WappPage;
+
 use super::{Tagged, WappTech, WappTechCheckResult, WappTechVersionPattern, WappTechVersionValue};
 
 trait ResolveVersion {
@@ -79,5 +81,34 @@ impl WappTech {
 
     pub fn check_text(&self, text: &str) -> Option<WappTechCheckResult> {
         self.text.check(text)
+    }
+
+    pub fn check<P: WappPage>(&self, page: &P) -> Option<WappTechCheckResult> {
+        let mut final_result: Option<WappTechCheckResult> = None;
+
+        macro_rules! handle_check_result {
+            ($check_call:expr, $best_result:ident) => {
+                if let Some(__result) = $check_call {
+                    if __result.confidence >= 100 {
+                        return Some(__result);
+                    }
+                    if __result.confidence > $best_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
+                        $best_result = Some(__result);
+                    }
+                }
+            };
+        }
+
+        if let Some(url) = page.url() {
+            handle_check_result!(self.check_url(url), final_result);
+        }
+        if let Some(html) = page.html() {
+            handle_check_result!(self.check_html(html), final_result);
+        }
+        if let Some(text) = page.text() {
+            handle_check_result!(self.check_text(text), final_result);
+        }
+
+        final_result
     }
 }
