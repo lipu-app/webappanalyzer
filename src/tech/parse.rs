@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::Path, sync::OnceLock};
+use std::{collections::HashMap, sync::OnceLock};
 
 use anyhow::{anyhow, bail, Context, Error};
 use regex::Regex;
@@ -48,15 +48,6 @@ struct WappTechRaw {
     pub meta: Option<serde_json::Value>,
     pub script_src: Option<serde_json::Value>,
     pub scripts: Option<serde_json::Value>,
-}
-
-impl WappTech {
-    pub(crate) fn load_from_file<P: AsRef<Path>>(path: &P) -> Result<HashMap<String, Self>, Error> {
-        let bytes = fs::read(path)
-            .with_context(|| format!("Failed to open file {}", path.as_ref().to_string_lossy()))?;
-
-        Self::load_from_bytes(&bytes)
-    }
 }
 
 /// Transform a `Option<serde_json::Value>` to a `Vec<T>` with `f`.
