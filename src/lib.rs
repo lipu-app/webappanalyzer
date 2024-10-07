@@ -13,7 +13,7 @@ pub use tech::WappTech;
 pub struct WappAnalyzer {
     pub cats: HashMap<i32, WappTechCategory>,
     pub groups: HashMap<i32, WappTechGroup>,
-    pub tech: HashMap<String, WappTech>,
+    pub techs: HashMap<String, WappTech>,
 }
 
 pub trait WappPage {
@@ -42,7 +42,7 @@ impl WappAnalyzer {
         Self {
             cats: HashMap::new(),
             groups: HashMap::new(),
-            tech: HashMap::new(),
+            techs: HashMap::new(),
         }
     }
 
@@ -68,15 +68,15 @@ impl WappAnalyzer {
                 .context("Loading wapp technology categories")?,
             groups: WappTechGroup::load_from_file(group_file)
                 .context("Loading wapp technology groups")?,
-            tech: {
-                let mut tech = HashMap::new();
+            techs: {
+                let mut techs = HashMap::new();
                 for path in tech_files {
-                    tech.extend(
+                    techs.extend(
                         WappTech::load_from_file(&path)
                             .with_context(|| format!("Loading {path:?}"))?,
                     )
                 }
-                tech
+                techs
             },
         })
     }
@@ -86,7 +86,7 @@ impl WappAnalyzer {
     pub fn check<P: WappPage>(&self, page: &P) -> Vec<WappCheckResult> {
         let mut result = Vec::new();
 
-        for tech in self.tech.values() {
+        for tech in self.techs.values() {
             if let Some(r) = tech.check(page) {
                 result.push(WappCheckResult {
                     tech_name: tech.name.clone(),
