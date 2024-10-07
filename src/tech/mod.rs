@@ -1,3 +1,4 @@
+mod check;
 mod parse;
 
 use regex::Regex;
@@ -139,4 +140,10 @@ pub enum WappTechVersionPattern {
 pub enum WappTechVersionValue {
     Const(String),
     Var(usize),
+}
+
+#[derive(Debug)]
+pub struct WappTechCheckResult {
+    confidence: i32,
+    version: Option<String>,
 }
