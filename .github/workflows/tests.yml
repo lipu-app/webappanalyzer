@@ -24,6 +24,9 @@ jobs:
         repository: lipu-app/webappanalyzer-data
         path: tests/webappanalyzer-data
 
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.6
+
     - uses: actions/cache@v4
       with:
         path: |
@@ -37,4 +40,8 @@ jobs:
       run: cargo fetch
 
     - name: cargo test
-      run: RUST_BACKTRACE=1 cargo test --release -- --include-ignored
+      run: cargo test --release -- --include-ignored
+      env:
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+        RUST_BACKTRACE: '1'
