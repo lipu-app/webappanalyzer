@@ -368,7 +368,7 @@ impl WappTechDomPatttern {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use anyhow::{anyhow, Error};
 
     use super::{to_vec, Tagged, WappTechVersionPattern, WappTechVersionValue};
