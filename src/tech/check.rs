@@ -137,7 +137,7 @@ impl WappTechCheck<&HeaderMap> for Vec<(String, Vec<Tagged<Regex>>)> {
 }
 
 #[cfg(feature = "cookie")]
-impl<'c> WappTechCheck<&[Cookie<'c>]> for Vec<(String, Vec<Tagged<Regex>>)> {
+impl WappTechCheck<&[Cookie<'_>]> for Vec<(String, Vec<Tagged<Regex>>)> {
     fn check(&self, input: &[Cookie]) -> Option<WappTechCheckResult> {
         let mut best_result: Option<WappTechCheckResult> = None;
 
@@ -196,7 +196,7 @@ impl WappTech {
         if self.script_src.is_empty() && !self.scripts.is_empty() {
             return best_result;
         }
-        const SCRIPT_SELECTOR: LazyLock<Selector> =
+        static SCRIPT_SELECTOR: LazyLock<Selector> =
             LazyLock::new(|| Selector::parse("script").unwrap());
         for el in dom.select(&SCRIPT_SELECTOR) {
             if let Some(src) = el.attr("src") {
