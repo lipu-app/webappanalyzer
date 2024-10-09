@@ -2,8 +2,10 @@ mod check;
 mod parse;
 
 use regex::Regex;
-use scraper::Selector;
 use serde::Deserialize;
+
+#[cfg(feature = "scraper")]
+use scraper::Selector;
 
 #[derive(Debug)]
 pub struct WappTech {
@@ -40,9 +42,12 @@ pub struct WappTech {
     pub excludes: Vec<String>,
     /// Cookies.
     pub cookies: Vec<(String, Vec<Tagged<Regex>>)>,
+
     /// Uses a [query selector](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll) to inspect
     /// element properties, attributes and text content.
+    #[cfg(feature = "scraper")]
     pub dom: Vec<WappTechDomPatttern>,
+
     #[allow(dead_code)]
     pub dns: (),
     /// JavaScript properties (case sensitive). Avoid short property names to prevent matching minified code.
@@ -102,6 +107,7 @@ pub enum WappTechPricing {
     Payg,
 }
 
+#[cfg(feature = "scraper")]
 #[derive(Debug)]
 pub struct WappTechDomPatttern {
     selector: Selector,

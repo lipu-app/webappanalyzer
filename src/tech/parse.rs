@@ -2,13 +2,15 @@ use std::{collections::HashMap, sync::OnceLock};
 
 use anyhow::{anyhow, bail, Context, Error};
 use regex::Regex;
-use scraper::Selector;
 use serde::Deserialize;
 
-use super::{
-    Tagged, WappTech, WappTechDomPatttern, WappTechPricing, WappTechVersionPattern,
-    WappTechVersionValue,
-};
+use super::{Tagged, WappTech, WappTechPricing, WappTechVersionPattern, WappTechVersionValue};
+
+#[cfg(feature = "scraper")]
+use scraper::Selector;
+
+#[cfg(feature = "scraper")]
+use super::WappTechDomPatttern;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -28,6 +30,7 @@ struct WappTechRaw {
     pub requires_category: Option<serde_json::Value>,
     pub excludes: Option<serde_json::Value>,
     pub cookies: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub dom: Option<serde_json::Value>,
     #[allow(dead_code)]
     pub dns: Option<serde_json::Value>,
@@ -146,6 +149,7 @@ impl WappTech {
                     requires_category: to_i32_vec(item.requires_category),
                     excludes: to_string_vec(item.excludes),
                     cookies: to_pattern_map(item.cookies)?,
+                    #[cfg(feature = "scraper")]
                     dom: item
                         .dom
                         .map(WappTechDomPatttern::from_json)
@@ -171,6 +175,7 @@ impl WappTech {
     }
 }
 
+#[cfg(feature = "scraper")]
 impl Tagged<()> {
     fn new(confidence: i32, version: Option<WappTechVersionPattern>) -> Self {
         Self {
@@ -268,6 +273,7 @@ impl WappTechVersionValue {
     }
 }
 
+#[cfg(feature = "scraper")]
 impl WappTechDomPatttern {
     fn from_selector(input: &str) -> Result<Self, Error> {
         let tagged_selector = Tagged::<Selector>::parse(input, |s| {
@@ -277,10 +283,7 @@ impl WappTechDomPatttern {
 
         Ok(Self {
             selector: tagged_selector.inner,
-            exists: Tagged::new(
-                tagged_selector.confidence,
-                tagged_selector.version,
-            ),
+            exists: Tagged::new(tagged_selector.confidence, tagged_selector.version),
             text: None,
             attributes: Vec::new(),
             properties: (),
