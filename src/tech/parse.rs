@@ -29,6 +29,7 @@ struct WappTechRaw {
     pub requires: Option<serde_json::Value>,
     pub requires_category: Option<serde_json::Value>,
     pub excludes: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub cookies: Option<serde_json::Value>,
     #[allow(dead_code)]
     pub dom: Option<serde_json::Value>,
@@ -149,6 +150,7 @@ impl WappTech {
                     requires: to_string_vec(item.requires),
                     requires_category: to_i32_vec(item.requires_category),
                     excludes: to_string_vec(item.excludes),
+                    #[cfg(feature = "cookie")]
                     cookies: to_pattern_map(item.cookies)?,
                     #[cfg(feature = "scraper")]
                     dom: item

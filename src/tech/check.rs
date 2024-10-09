@@ -4,6 +4,9 @@ use crate::WappPage;
 
 use super::{Tagged, WappTech, WappTechCheckResult, WappTechVersionPattern, WappTechVersionValue};
 
+#[cfg(feature = "cookie")]
+use cookie::Cookie;
+
 #[cfg(feature = "http")]
 use http::{HeaderMap, HeaderValue};
 
@@ -116,6 +119,22 @@ impl WappTechCheck<&HeaderMap> for Vec<(String, Vec<Tagged<Regex>>)> {
     }
 }
 
+#[cfg(feature = "cookie")]
+impl<'c> WappTechCheck<&[Cookie<'c>]> for Vec<(String, Vec<Tagged<Regex>>)> {
+    fn check(&self, input: &[Cookie]) -> Option<WappTechCheckResult> {
+        let mut best_result: Option<WappTechCheckResult> = None;
+
+        for cookie in input {
+            for (pat_key, pat) in self {
+                if pat_key == cookie.name() {
+                    handle_check_result!(pat.check(cookie.value()), best_result);
+                }
+            }
+        }
+
+        best_result
+    }
+}
 
 impl WappTech {
     pub fn check_url(&self, url: &str) -> Option<WappTechCheckResult> {
@@ -125,6 +144,11 @@ impl WappTech {
     #[cfg(feature = "http")]
     pub fn check_headers(&self, headers: &HeaderMap) -> Option<WappTechCheckResult> {
         self.headers.check(headers)
+    }
+
+    #[cfg(feature = "cookie")]
+    pub fn check_cookies(&self, cookies: &[Cookie]) -> Option<WappTechCheckResult> {
+        self.cookies.check(cookies)
     }
 
     pub fn check_html(&self, html: &str) -> Option<WappTechCheckResult> {
@@ -144,6 +168,10 @@ impl WappTech {
         #[cfg(feature = "http")]
         if let Some(headers) = page.headers() {
             handle_check_result!(self.check_headers(headers), best_result);
+        }
+        #[cfg(feature = "cookie")]
+        if let Some(cookies) = page.cookies() {
+            handle_check_result!(self.check_cookies(cookies), best_result);
         }
         if let Some(html) = page.html() {
             handle_check_result!(self.check_html(html), best_result);

@@ -40,7 +40,9 @@ pub struct WappTech {
     pub requires_category: Vec<i32>,
     /// Opposite of implies. The presence of one application can exclude the presence of another.
     pub excludes: Vec<String>,
+
     /// Cookies.
+    #[cfg(feature = "cookie")]
     pub cookies: Vec<(String, Vec<Tagged<Regex>>)>,
 
     /// Uses a [query selector](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll) to inspect

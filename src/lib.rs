@@ -6,6 +6,9 @@ use anyhow::{Context, Error};
 use serde::Deserialize;
 pub use tech::WappTech;
 
+#[cfg(feature = "cookie")]
+use cookie::Cookie;
+
 #[cfg(feature = "http")]
 use http::HeaderMap;
 
@@ -41,6 +44,11 @@ pub trait WappPage {
 
     #[cfg(feature = "http")]
     fn headers(&self) -> Option<&HeaderMap> {
+        None
+    }
+
+    #[cfg(feature = "cookie")]
+    fn cookies(&self) -> Option<&[Cookie]> {
         None
     }
 
