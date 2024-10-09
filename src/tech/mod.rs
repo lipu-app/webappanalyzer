@@ -81,11 +81,14 @@ pub struct WappTech {
     #[allow(dead_code)]
     pub xhr: (),
     /// HTML meta tags, e.g. generator.
+    #[cfg(feature = "scraper")]
     pub meta: Vec<(String, Vec<Tagged<Regex>>)>,
     /// URLs of JavaScript files included on the page.
+    #[cfg(feature = "scraper")]
     pub script_src: Vec<Tagged<Regex>>,
     /// JavaScript source code. Inspects inline and external scripts. For performance reasons, avoid `scripts` where
     /// possible and use `js` instead.
+    #[cfg(feature = "scraper")]
     pub scripts: Vec<Tagged<Regex>>,
 }
 

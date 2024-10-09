@@ -50,8 +50,11 @@ struct WappTechRaw {
     #[allow(dead_code)]
     pub xhr: Option<serde_json::Value>,
     pub url: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub meta: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub script_src: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub scripts: Option<serde_json::Value>,
 }
 
@@ -111,7 +114,7 @@ fn to_pattern_vec(value: Option<serde_json::Value>) -> Vec<Tagged<Regex>> {
     })
 }
 
-#[allow(clippy::type_complexity)]
+#[allow(dead_code, clippy::type_complexity)]
 fn to_pattern_map(
     value: Option<serde_json::Value>,
 ) -> Result<Vec<(String, Vec<Tagged<Regex>>)>, Error> {
@@ -168,8 +171,11 @@ impl WappTech {
                     robots: (),
                     url: to_pattern_vec(item.url),
                     xhr: (),
+                    #[cfg(feature = "scraper")]
                     meta: to_pattern_map(item.meta)?,
+                    #[cfg(feature = "scraper")]
                     script_src: to_pattern_vec(item.script_src),
+                    #[cfg(feature = "scraper")]
                     scripts: to_pattern_vec(item.scripts),
                 },
             );
