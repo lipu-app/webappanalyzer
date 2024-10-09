@@ -53,20 +53,20 @@ impl WappTechCheck<&str> for Tagged<Regex> {
 
 impl WappTechCheck<&str> for Vec<Tagged<Regex>> {
     fn check(&self, input: &str) -> Option<WappTechCheckResult> {
-        let mut final_result: Option<WappTechCheckResult> = None;
+        let mut best_result: Option<WappTechCheckResult> = None;
 
         for pat in self {
             if let Some(result) = pat.check(input) {
                 if result.confidence >= 100 {
                     return Some(result);
                 }
-                if result.confidence > final_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
-                    final_result = Some(result);
+                if result.confidence > best_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
+                    best_result = Some(result);
                 }
             }
         }
 
-        final_result
+        best_result
     }
 }
 
@@ -84,7 +84,7 @@ impl WappTech {
     }
 
     pub fn check<P: WappPage>(&self, page: &P) -> Option<WappTechCheckResult> {
-        let mut final_result: Option<WappTechCheckResult> = None;
+        let mut best_result: Option<WappTechCheckResult> = None;
 
         macro_rules! handle_check_result {
             ($check_call:expr, $best_result:ident) => {
@@ -100,15 +100,15 @@ impl WappTech {
         }
 
         if let Some(url) = page.url() {
-            handle_check_result!(self.check_url(url), final_result);
+            handle_check_result!(self.check_url(url), best_result);
         }
         if let Some(html) = page.html() {
-            handle_check_result!(self.check_html(html), final_result);
+            handle_check_result!(self.check_html(html), best_result);
         }
         if let Some(text) = page.text() {
-            handle_check_result!(self.check_text(text), final_result);
+            handle_check_result!(self.check_text(text), best_result);
         }
 
-        final_result
+        best_result
     }
 }
