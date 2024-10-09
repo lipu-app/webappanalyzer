@@ -39,8 +39,21 @@ jobs:
     - name: cargo fetch
       run: cargo fetch
 
-    - name: cargo test
-      run: cargo test --release -- --include-ignored
+    - name: cargo clippy
+      run: cargo clippy
+      env:
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+
+    - name: cargo test --no-default-features
+      run: cargo test --release --no-default-features -- --include-ignored
+      env:
+        SCCACHE_GHA_ENABLED: 'true'
+        RUSTC_WRAPPER: sccache
+        RUST_BACKTRACE: '1'
+
+    - name: cargo test --all-features
+      run: cargo test --release --all-features -- --include-ignored
       env:
         SCCACHE_GHA_ENABLED: 'true'
         RUSTC_WRAPPER: sccache
