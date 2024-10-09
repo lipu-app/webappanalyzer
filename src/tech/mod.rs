@@ -53,8 +53,11 @@ pub struct WappTech {
     /// JavaScript properties (case sensitive). Avoid short property names to prevent matching minified code.
     #[allow(dead_code)]
     pub js: (),
+
     /// HTTP response headers.
+    #[cfg(feature = "http")]
     pub headers: Vec<(String, Vec<Tagged<Regex>>)>,
+
     /// HTML source code. Patterns must include an HTML opening tag to avoid matching plain text. For performance
     /// reasons, avoid `html` where possible and use `dom` instead.
     pub html: Vec<Tagged<Regex>>,

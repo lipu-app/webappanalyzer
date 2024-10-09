@@ -4,6 +4,9 @@ use crate::WappPage;
 
 use super::{Tagged, WappTech, WappTechCheckResult, WappTechVersionPattern, WappTechVersionValue};
 
+#[cfg(feature = "http")]
+use http::{HeaderMap, HeaderValue};
+
 trait ResolveVersion {
     type Version;
 
@@ -29,6 +32,19 @@ impl ResolveVersion for Option<WappTechVersionValue> {
     }
 }
 
+macro_rules! handle_check_result {
+    ($check_call:expr, $best_result:ident) => {
+        if let Some(__result) = $check_call {
+            if __result.confidence >= 100 {
+                return Some(__result);
+            }
+            if __result.confidence > $best_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
+                $best_result = Some(__result);
+            }
+        }
+    };
+}
+
 trait WappTechCheck<T> {
     fn check(&self, input: T) -> Option<WappTechCheckResult>;
 }
@@ -51,17 +67,47 @@ impl WappTechCheck<&str> for Tagged<Regex> {
     }
 }
 
+#[cfg(feature = "http")]
+impl WappTechCheck<&HeaderValue> for Tagged<Regex> {
+    fn check(&self, input: &HeaderValue) -> Option<WappTechCheckResult> {
+        self.check(input.to_str().ok()?)
+    }
+}
+
 impl WappTechCheck<&str> for Vec<Tagged<Regex>> {
     fn check(&self, input: &str) -> Option<WappTechCheckResult> {
         let mut best_result: Option<WappTechCheckResult> = None;
 
         for pat in self {
-            if let Some(result) = pat.check(input) {
-                if result.confidence >= 100 {
-                    return Some(result);
-                }
-                if result.confidence > best_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
-                    best_result = Some(result);
+            handle_check_result!(pat.check(input), best_result);
+        }
+
+        best_result
+    }
+}
+
+#[cfg(feature = "http")]
+impl WappTechCheck<&HeaderValue> for Vec<Tagged<Regex>> {
+    fn check(&self, input: &HeaderValue) -> Option<WappTechCheckResult> {
+        let mut best_result: Option<WappTechCheckResult> = None;
+
+        for pat in self {
+            handle_check_result!(pat.check(input), best_result);
+        }
+
+        best_result
+    }
+}
+
+#[cfg(feature = "http")]
+impl WappTechCheck<&HeaderMap> for Vec<(String, Vec<Tagged<Regex>>)> {
+    fn check(&self, input: &HeaderMap) -> Option<WappTechCheckResult> {
+        let mut best_result: Option<WappTechCheckResult> = None;
+
+        for (header_key, header_value) in input {
+            for (pat_key, pat) in self {
+                if pat_key.eq_ignore_ascii_case(header_key.as_str()) {
+                    handle_check_result!(pat.check(header_value), best_result);
                 }
             }
         }
@@ -70,9 +116,15 @@ impl WappTechCheck<&str> for Vec<Tagged<Regex>> {
     }
 }
 
+
 impl WappTech {
     pub fn check_url(&self, url: &str) -> Option<WappTechCheckResult> {
         self.url.check(url)
+    }
+
+    #[cfg(feature = "http")]
+    pub fn check_headers(&self, headers: &HeaderMap) -> Option<WappTechCheckResult> {
+        self.headers.check(headers)
     }
 
     pub fn check_html(&self, html: &str) -> Option<WappTechCheckResult> {
@@ -86,21 +138,12 @@ impl WappTech {
     pub fn check<P: WappPage>(&self, page: &P) -> Option<WappTechCheckResult> {
         let mut best_result: Option<WappTechCheckResult> = None;
 
-        macro_rules! handle_check_result {
-            ($check_call:expr, $best_result:ident) => {
-                if let Some(__result) = $check_call {
-                    if __result.confidence >= 100 {
-                        return Some(__result);
-                    }
-                    if __result.confidence > $best_result.as_ref().map(|x| x.confidence).unwrap_or(0) {
-                        $best_result = Some(__result);
-                    }
-                }
-            };
-        }
-
         if let Some(url) = page.url() {
             handle_check_result!(self.check_url(url), best_result);
+        }
+        #[cfg(feature = "http")]
+        if let Some(headers) = page.headers() {
+            handle_check_result!(self.check_headers(headers), best_result);
         }
         if let Some(html) = page.html() {
             handle_check_result!(self.check_html(html), best_result);

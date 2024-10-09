@@ -36,6 +36,7 @@ struct WappTechRaw {
     pub dns: Option<serde_json::Value>,
     #[allow(dead_code)]
     pub js: Option<serde_json::Value>,
+    #[allow(dead_code)]
     pub headers: Option<serde_json::Value>,
     pub html: Option<serde_json::Value>,
     pub text: Option<serde_json::Value>,
@@ -156,6 +157,7 @@ impl WappTech {
                         .unwrap_or_default(),
                     dns: (),
                     js: (),
+                    #[cfg(feature = "http")]
                     headers: to_pattern_map(item.headers)?,
                     html: to_pattern_vec(item.html),
                     text: to_pattern_vec(item.text),

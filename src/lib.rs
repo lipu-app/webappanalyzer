@@ -6,6 +6,9 @@ use anyhow::{Context, Error};
 use serde::Deserialize;
 pub use tech::WappTech;
 
+#[cfg(feature = "http")]
+use http::HeaderMap;
+
 #[derive(Debug)]
 pub struct WappAnalyzer {
     pub groups: HashMap<i32, WappTechGroup>,
@@ -33,6 +36,11 @@ pub struct WappTechCategory {
 
 pub trait WappPage {
     fn url(&self) -> Option<&str> {
+        None
+    }
+
+    #[cfg(feature = "http")]
+    fn headers(&self) -> Option<&HeaderMap> {
         None
     }
 
