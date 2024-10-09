@@ -9,6 +9,9 @@ pub use tech::WappTech;
 #[cfg(feature = "cookie")]
 use cookie::Cookie;
 
+#[cfg(feature = "scraper")]
+use scraper::Html;
+
 #[cfg(feature = "http")]
 use http::HeaderMap;
 
@@ -49,6 +52,11 @@ pub trait WappPage {
 
     #[cfg(feature = "cookie")]
     fn cookies(&self) -> Option<&[Cookie]> {
+        None
+    }
+
+    #[cfg(feature = "scraper")]
+    fn dom(&self) -> Option<&Html> {
         None
     }
 
