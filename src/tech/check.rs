@@ -11,7 +11,10 @@ use cookie::Cookie;
 use http::{HeaderMap, HeaderValue};
 
 #[cfg(feature = "scraper")]
-use scraper::Html;
+use std::sync::LazyLock;
+
+#[cfg(feature = "scraper")]
+use scraper::{Html, Selector};
 
 #[cfg(feature = "scraper")]
 use super::WappTechDomPatttern;
@@ -186,7 +189,30 @@ impl WappTech {
 
     #[cfg(feature = "scraper")]
     pub fn check_dom(&self, dom: &Html) -> Option<WappTechCheckResult> {
-        self.dom.check(dom)
+        let mut best_result: Option<WappTechCheckResult> = None;
+
+        handle_check_result!(self.dom.check(dom), best_result);
+
+        if self.script_src.is_empty() && !self.scripts.is_empty() {
+            return best_result;
+        }
+        const SCRIPT_SELECTOR: LazyLock<Selector> =
+            LazyLock::new(|| Selector::parse("script").unwrap());
+        for el in dom.select(&SCRIPT_SELECTOR) {
+            if let Some(src) = el.attr("src") {
+                for pat in &self.script_src {
+                    handle_check_result!(pat.check(src), best_result);
+                }
+            }
+
+            for text in el.text() {
+                for pat in &self.text {
+                    handle_check_result!(pat.check(text), best_result);
+                }
+            }
+        }
+
+        best_result
     }
 
     pub fn check_html(&self, html: &str) -> Option<WappTechCheckResult> {
